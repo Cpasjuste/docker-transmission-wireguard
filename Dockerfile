@@ -8,8 +8,7 @@ FROM base as base-amd64
 
 ENV DOCKERIZE_FILENAME dockerize-alpine-linux-amd64-${DOCKERIZE_VERSION}.tar.gz
 ENV DOCKERIZE_URL https://github.com/jwilder/dockerize/releases/download/${DOCKERIZE_VERSION}/${DOCKERIZE_FILENAME}
-ENV S6_FILENAME s6-overlay-x86_64.tar.xz
-ENV S6_URL https://github.com/just-containers/s6-overlay/releases/download/${S6_VERSION}/${S6_FILENAME}
+
 ENV SHADOWSOCKS_FILENAME shadowsocks-${SHADOWSOCKS_VERSION}.x86_64-unknown-linux-musl.tar.xz
 ENV SHADOWSOCKS_URL https://github.com/shadowsocks/shadowsocks-rust/releases/download/${SHADOWSOCKS_VERSION}/${SHADOWSOCKS_FILENAME}
 
@@ -17,25 +16,27 @@ ARG TARGETARCH
 ARG TARGETVARIANT
 FROM base-${TARGETARCH}${TARGETVARIANT}
 
-LABEL maintainer "Vidur Butalia <vidurbutalia@gmail.com>"
-LABEL org.label-schema.url=https://github.com/vidurb/docker-transmission-wireguard
+LABEL maintainer "cpasjuste <cpasjuste@gmail.com>"
+LABEL org.label-schema.url=https://github.com/cpasjuste/docker-transmission-wireguard
 LABEL org.label-schema.name=transmission-wireguard
 
-ADD ${S6_URL} /
+ADD https://github.com/just-containers/s6-overlay/releases/download/${S6_VERSION}/s6-overlay-symlinks-noarch.tar.xz /
+ADD https://github.com/just-containers/s6-overlay/releases/download/${S6_VERSION}/s6-overlay-noarch.tar.xz /
+ADD https://github.com/just-containers/s6-overlay/releases/download/${S6_VERSION}/s6-overlay-x86_64.tar.xz /
 
 ADD ${DOCKERIZE_URL} /
 
-
 ADD https://github.com/Secretmapper/combustion/archive/release.zip /
 
-RUN tar xJvf ${S6_FILENAME} \
-    && rm ${S6_FILENAME} \
+RUN tar -C / -Jxpf s6-overlay-symlinks-noarch.tar.xz \
+    && tar -C / -Jxpf s6-overlay-noarch.tar.xz \
+    && tar -C / -Jxpf s6-overlay-x86_64.tar.xz \
+    && rm s6-overlay-symlinks-noarch.tar.xz s6-overlay-noarch.tar.xz s6-overlay-x86_64.tar.xz \
     && tar -C /usr/local/bin -xzvf ${DOCKERIZE_FILENAME} \
     && rm ${DOCKERIZE_FILENAME} \
-    && apk add --no-cache --update wireguard-tools transmission-daemon unzip privoxy \
+    && apk add --no-cache --update iptables wireguard-tools transmission-daemon unzip privoxy \
     && rm -rf /usr/share/transmission/web/* \
     && unzip /release.zip \
-    && ls /combustion-release \
     && mv /combustion-release /usr/share/transmission/web \
     && rm /release.zip \
     && adduser --home /config --shell /bin/false --disabled-password twg_user
@@ -43,6 +44,8 @@ RUN tar xJvf ${S6_FILENAME} \
 #ADD https://raw.githubusercontent.com/SebDanielsson/dark-combustion/master/main.77f9cffc.css /usr/share/transmission/web/
 
 COPY root/ .
+RUN chmod -R a+x /etc/cont-init.d/*
+RUN chmod -R a+x /etc/services.d/*
 
 EXPOSE 9091 51820/udp
 
