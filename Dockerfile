@@ -1,39 +1,17 @@
-FROM --platform=$TARGETPLATFORM alpine:3.12 as base
+FROM --platform=$TARGETPLATFORM alpine:latest as base
 
-ENV DOCKERIZE_VERSION=v0.6.1 \
-    S6_VERSION=v2.1.0.2 \
-    SHADOWSOCKS_VERSION=v1.8.23
+ENV DOCKERIZE_VERSION=v0.9.6 \
+    S6_VERSION=v3.2.1.0 \
+    SHADOWSOCKS_VERSION=v1.23.5
 
 FROM base as base-amd64
 
 ENV DOCKERIZE_FILENAME dockerize-alpine-linux-amd64-${DOCKERIZE_VERSION}.tar.gz
 ENV DOCKERIZE_URL https://github.com/jwilder/dockerize/releases/download/${DOCKERIZE_VERSION}/${DOCKERIZE_FILENAME}
-ENV S6_FILENAME s6-overlay-amd64.tar.gz
+ENV S6_FILENAME s6-overlay-x86_64.tar.xz
 ENV S6_URL https://github.com/just-containers/s6-overlay/releases/download/${S6_VERSION}/${S6_FILENAME}
 ENV SHADOWSOCKS_FILENAME shadowsocks-${SHADOWSOCKS_VERSION}.x86_64-unknown-linux-musl.tar.xz
 ENV SHADOWSOCKS_URL https://github.com/shadowsocks/shadowsocks-rust/releases/download/${SHADOWSOCKS_VERSION}/${SHADOWSOCKS_FILENAME}
-
-FROM base as base-armv6
-
-ENV DOCKERIZE_FILENAME dockerize-linux-armel-${DOCKERIZE_VERSION}.tar.gz
-ENV DOCKERIZE_URL https://github.com/jwilder/dockerize/releases/download/${DOCKERIZE_VERSION}/${DOCKERIZE_FILENAME}
-ENV S6_FILENAME s6-overlay-arm.tar.gz
-ENV S6_URL https://github.com/just-containers/s6-overlay/releases/download/${S6_VERSION}/${S6_FILENAME}
-
-FROM base as base-armv7
-
-ENV DOCKERIZE_FILENAME dockerize-linux-armhf-${DOCKERIZE_VERSION}.tar.gz
-ENV DOCKERIZE_URL https://github.com/jwilder/dockerize/releases/download/${DOCKERIZE_VERSION}/${DOCKERIZE_FILENAME}
-ENV S6_FILENAME s6-overlay-armhf.tar.gz
-ENV S6_URL https://github.com/just-containers/s6-overlay/releases/download/${S6_VERSION}/${S6_FILENAME}
-
-FROM base as base-arm64
-
-ENV DOCKERIZE_FILENAME dockerize-linux-armhf-${DOCKERIZE_VERSION}.tar.gz
-ENV DOCKERIZE_URL https://github.com/jwilder/dockerize/releases/download/${DOCKERIZE_VERSION}/${DOCKERIZE_FILENAME}
-ENV S6_FILENAME s6-overlay-aarch64.tar.gz
-ENV S6_URL https://github.com/just-containers/s6-overlay/releases/download/${S6_VERSION}/${S6_FILENAME}
-
 
 ARG TARGETARCH
 ARG TARGETVARIANT
@@ -50,7 +28,7 @@ ADD ${DOCKERIZE_URL} /
 
 ADD https://github.com/Secretmapper/combustion/archive/release.zip /
 
-RUN tar xzvf ${S6_FILENAME} \
+RUN tar xJvf ${S6_FILENAME} \
     && rm ${S6_FILENAME} \
     && tar -C /usr/local/bin -xzvf ${DOCKERIZE_FILENAME} \
     && rm ${DOCKERIZE_FILENAME} \
@@ -58,12 +36,11 @@ RUN tar xzvf ${S6_FILENAME} \
     && rm -rf /usr/share/transmission/web/* \
     && unzip /release.zip \
     && ls /combustion-release \
-    && mv /combustion-release/* /usr/share/transmission/web/ \
+    && mv /combustion-release /usr/share/transmission/web \
     && rm /release.zip \
-    && rmdir /combustion-release  \
     && adduser --home /config --shell /bin/false --disabled-password twg_user
 
-ADD https://raw.githubusercontent.com/SebDanielsson/dark-combustion/master/main.77f9cffc.css /usr/share/transmission/web/
+#ADD https://raw.githubusercontent.com/SebDanielsson/dark-combustion/master/main.77f9cffc.css /usr/share/transmission/web/
 
 COPY root/ .
 
